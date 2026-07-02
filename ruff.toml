@@ -1,0 +1,9 @@
+# Lint config for the Python component. Matches the tollbooth-dpyc house style.
+line-length = 120
+
+# Exclude generated bindings, the vendored poll_loop (bytecodealliance), and
+# throwaway spike probes.
+extend-exclude = ["**/wit_world/**", "**/bindings/**", "**/poll_loop.py", "**/spike/**"]
+
+[lint]
+ignore = ["E501"]

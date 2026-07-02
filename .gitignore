@@ -1,0 +1,14 @@
+venv/
+.venv/
+target/
+node_modules/
+.wrangler/
+*.wasm
+.env
+.env.local
+*.local.json
+dist/
+__pycache__/
+*.pyc
+# cargo-component regenerates these from wit/ on build
+crypto/src/bindings.rs

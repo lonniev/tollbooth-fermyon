@@ -1,0 +1,5 @@
+package tollbooth:httptest@0.1.0;
+
+world app {
+    include wasi:http/proxy@0.2.8;
+}
