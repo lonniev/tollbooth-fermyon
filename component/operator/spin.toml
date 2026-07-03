@@ -1,0 +1,35 @@
+spin_manifest_version = 2
+
+[application]
+name = "tollbooth-fermyon"
+version = "0.1.0"
+authors = ["lonniev"]
+description = "DPYC weather Operator MCP as a Spin/WASI component (peer of tollbooth-sample)."
+
+[[trigger.http]]
+route = "/..."
+component = "operator"
+
+[component.operator]
+source = "server.wasm"
+# The wasmcp streamable-HTTP transport uses a session store when
+# WASMCP_SESSION_ENABLED=true (Mcp-Session-Id); Spin's default KV backs it.
+key_value_stores = ["default"]
+# Everything the operator reaches at runtime. The operator is nsec-only — the
+# Neon URL is discovered from the encrypted bootstrap event, never configured here.
+allowed_outbound_hosts = [
+  # registry (dpyc-community read-only lookup cache)
+  "https://raw.githubusercontent.com",
+  # weather backend
+  "https://api.open-meteo.com",
+  "https://archive-api.open-meteo.com",
+  # operator vault (Neon serverless Postgres, HTTP SQL API)
+  "https://*.neon.tech",
+  # the HTTPS→Nostr-relay bridge Worker. Local dev points BRIDGE_URL at the
+  # `wrangler dev` port; a deploy points it at the deployed Worker (add its host).
+  "http://localhost:8799",
+  "https://*.workers.dev",
+]
+
+# Config (operator nsec, bridge URL) is delivered at run time via `spin up --env`
+# / `spin deploy` variables — never committed. See README "Run".

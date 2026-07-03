@@ -11,7 +11,7 @@ import httpx
 from poll_loop import Stream, Sink, register
 from componentize_py_types import Ok
 from wit_world.imports import outgoing_handler
-from wit_world.imports.types import (
+from wit_world.imports.wasi_http_types import (
     Method_Get, Method_Post, Method_Put, Method_Delete, Method_Patch,
     Method_Head, Method_Options, Method_Other,
     Scheme_Http, Scheme_Https, Scheme_Other,

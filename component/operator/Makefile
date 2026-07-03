@@ -18,6 +18,11 @@ deps:
 	uv pip install --target deps "httpx==0.28.1"
 
 # Compile the Python component (schemas generated in-Wasm; no pydantic).
+# `componentize` generates the wit_world bindings internally for app.py's pre-init
+# imports; we do NOT run `bindings .` separately because that regenerates
+# poll_loop.py with the template's `types` name, clobbering the committed
+# poll_loop.py / wasi_transport.py that reference the merged world's
+# `wasi_http_types` binding.
 build:
 	$(CPY) --wit-path wit --world $(COMPONENT) componentize app -p . -p deps -o $(COMPONENT).wasm
 

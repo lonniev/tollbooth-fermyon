@@ -12,3 +12,7 @@ wit_world/
 dist/
 __pycache__/
 *.pyc
+
+# componentize-py / spin build artifacts
+component/operator/componentize_py_runtime.pyi
+.spin/
