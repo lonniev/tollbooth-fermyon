@@ -99,6 +99,48 @@ _WHEEL_VERSION = _resolve_wheel_version()
 _orig_ilm_version = _ilm.version
 _ilm.version = lambda name: _WHEEL_VERSION if name == "tollbooth-dpyc" else _orig_ilm_version(name)
 
+# Opt-in proof-rejection diagnostic (env PROOF_DEBUG). When a proof is rejected,
+# enrich the error with WHICH sub-check failed (u-tag binding, pubkey, signature,
+# timestamp) — invaluable for debugging a client's proof binding. OFF by default:
+# leaking which check failed would help an attacker refine an invalid proof.
+import tollbooth.runtime as _rt_mod  # noqa: E402
+import tollbooth.identity_proof as _idp  # noqa: E402
+_orig_require_proof = _rt_mod.require_proof
+
+
+async def _require_proof_maybe_diag(npub, dpop_token, tool_name, *, proven_cache=None, window_seconds=_idp.DEFAULT_WINDOW_SECONDS):
+    err = await _orig_require_proof(npub, dpop_token, tool_name, proven_cache=proven_cache, window_seconds=window_seconds)
+    if isinstance(err, dict) and err.get("error_code") == "proof_invalid" and _os.environ.get("PROOF_DEBUG"):
+        d = {"expected_tool_name": tool_name}
+        try:
+            import hashlib as _h
+            import time as _t
+            ev = json.loads(dpop_token)
+            if not isinstance(ev, dict):
+                d["dpop_token_form"] = "JSON but not an event object"
+            else:
+                d["u_tags"] = [t[1] for t in ev.get("tags", []) if len(t) >= 2 and t[0] == "u"]
+                d["event_kind"] = ev.get("kind")
+                d["age_seconds"] = round(_t.time() - (ev.get("created_at") or 0), 1)
+                try:
+                    d["pubkey_matches_operator"] = ev.get("pubkey") == _idp._npub_to_hex(npub)
+                except Exception as e:
+                    d["pubkey_check_error"] = str(e)
+                ser = json.dumps([0, ev.get("pubkey"), ev.get("created_at"), ev.get("kind"), ev.get("tags"), ev.get("content")], separators=(",", ":"), ensure_ascii=False)
+                rid = _h.sha256(ser.encode()).hexdigest()
+                d["id_recomputes"] = ev.get("id") == rid
+                try:
+                    d["sig_verifies"] = ops.schnorr_verify(bytes.fromhex(rid), bytes.fromhex(ev.get("sig", "")), bytes.fromhex(ev.get("pubkey", "")))
+                except Exception as e:
+                    d["sig_error"] = str(e)
+        except Exception:
+            d["dpop_token_form"] = "not JSON (cache-key shape?): " + repr(str(dpop_token)[:40])
+        err["_diagnostic"] = d
+    return err
+
+
+_rt_mod.require_proof = _require_proof_maybe_diag
+
 import weather  # noqa: E402
 import pynostr.key  # noqa: E402,F401  (bundle the pure-Python bech32 shim)
 import pynostr.event  # noqa: E402,F401  (Event.verify via ops.schnorr_verify)
