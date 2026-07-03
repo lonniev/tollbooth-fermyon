@@ -25,6 +25,8 @@ allowed_outbound_hosts = [
   "https://archive-api.open-meteo.com",
   # operator vault (Neon serverless Postgres, HTTP SQL API)
   "https://*.neon.tech",
+  # upstream DPYC MCPs (dpyc-oracle, Authorities) for oracle delegation + certify_credits
+  "https://*.fastmcp.app",
   # the HTTPS→Nostr-relay bridge Worker. Local dev points BRIDGE_URL at the
   # `wrangler dev` port; a deploy points it at the deployed Worker (add its host).
   "http://localhost:8799",
