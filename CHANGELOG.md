@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project aims
 to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed — slimmed onto the tollbooth-wasmcp host
+
+- The Spin/WASI host was extracted into the reusable **tollbooth-wasmcp** package
+  (the peer of FastMCP) and this operator now depends on it (`==0.1.5`). `app.py`
+  went 338 → ~120 lines and is business logic only; the vendored `crypto/`,
+  `bridge/`, and host scaffolding described under [0.1.0] moved to tollbooth-wasmcp.
+
+### Added
+
+- Secure Courier works in-Wasm (via tollbooth-wasmcp 0.1.3): `request`/`receive_npub_proof`
+  and credential channels, validated end-to-end against a live Pricing Studio proof.
+- Declared the BTCPay `operator_credential_template` (dropped in the slim refactor),
+  so `onboarding_status` reports the commerce credentials, the operator can receive
+  them via Secure Courier, and `purchase_credits` mints real Lightning invoices.
+- `current` returns labeled Fahrenheit/mph; `forecast` and `historical` request US units.
+
+### Fixed
+
+- `allowed_outbound_hosts` opened to all HTTPS — the operator's endpoints (BTCPay
+  host, upstream APIs) arrive at runtime from the vault and can't be pre-enumerated
+  at build time.
+- Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
+  instance was discarding in-memory debits, so paid tools had been running for free.
+
 ## [0.1.0] - 2026-07-03
 
 Initial proof-of-concept scaffolding.
