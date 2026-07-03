@@ -14,7 +14,7 @@ deps:
 	uv venv --python 3.12 $(VENV)
 	uv pip install --python $(PY) "componentize-py==0.24.*"
 	rm -rf deps
-	uv pip install --target deps --no-deps "tollbooth-dpyc==0.59.0"
+	uv pip install --target deps --no-deps "tollbooth-dpyc==0.59.1"
 	uv pip install --target deps "httpx==0.28.1"
 
 # Compile the Python component (schemas generated in-Wasm; no pydantic).

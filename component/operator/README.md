@@ -68,6 +68,6 @@ leaking which sub-check failed would help an attacker refine an invalid proof.
 ## Test
 
 ```
-pip install tollbooth-dpyc==0.59.0 httpx pytest
+pip install tollbooth-dpyc==0.59.1 httpx pytest
 pytest tests
 ```
