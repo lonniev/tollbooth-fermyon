@@ -92,3 +92,30 @@ def test_parity_with_fastmcp_on_wheel_standard_tools():
         gen_desc = {k: v.get("description") for k, v in gen["properties"].items()}
         live_desc = {k: v.get("description") for k, v in live[name].get("properties", {}).items()}
         assert norm(gen_desc) == norm(live_desc), f"{name}: {gen_desc} != {live_desc}"
+
+
+def test_wheel_future_annotations_resolve_to_json_types():
+    """The tollbooth-dpyc wheel uses `from __future__ import annotations`, so a
+    param annotated `int` reaches us as the string "int". tool_schema must resolve
+    it (via get_type_hints) to the correct JSON type — not fall through to the
+    "string" default. Otherwise a client sends a string and the wheel's
+    `timedelta(days=...)` raises TypeError."""
+    from tollbooth.tool_identity import STANDARD_IDENTITIES
+    from tollbooth.runtime import OperatorRuntime, register_standard_tools
+
+    class _Shim:
+        def __init__(self):
+            self.registry = {}
+
+        def tool(self, name=None, **_kw):
+            def deco(fn):
+                self.registry[name or fn.__name__] = fn
+                return fn
+            return deco
+
+    rt = OperatorRuntime(tool_registry=dict(STANDARD_IDENTITIES), service_name="t")
+    mcp = _Shim()
+    register_standard_tools(mcp, "weather", rt, service_name="t", service_version="0")
+
+    days = tool_schema(mcp.registry["weather_account_statement"])["properties"]["days"]
+    assert days["type"] == "integer", f"days mis-typed as {days['type']!r} (PEP 563 not resolved)"
