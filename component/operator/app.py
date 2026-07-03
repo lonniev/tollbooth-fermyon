@@ -14,6 +14,8 @@ import tollbooth_wasmcp  # noqa: F401 — installs the pre-init seams (must prec
 from tollbooth_wasmcp import SpinOperatorHost
 
 from tollbooth.tool_identity import ToolIdentity, capability_uuid
+from tollbooth.credential_templates import CredentialTemplate, FieldSpec
+from tollbooth.credential_validators import validate_btcpay_creds
 
 import weather
 
@@ -26,8 +28,39 @@ _DOMAIN = {
     GET_HISTORICAL: ToolIdentity(tool_id=GET_HISTORICAL, capability="get_historical_weather", category="heavy", intent="Get historical weather data"),
 }
 
-host = SpinOperatorHost(service_name="tollbooth-fermyon", slug="fermyon",
-                        service_version="0.1.0", domain_tools=_DOMAIN)
+# Operator commerce credentials — BTCPay for Lightning payments. Declaring the
+# template is what makes onboarding_status report these as required (so Pricing
+# Studio renders them) and lets the operator receive them via Secure Courier.
+_BTCPAY_TEMPLATE = CredentialTemplate(
+    service="fermyon-operator",
+    version=2,
+    description="Operator credentials for BTCPay Lightning payments",
+    fields={
+        "btcpay_host": FieldSpec(
+            required=True, sensitive=True,
+            description="The URL of your BTCPay Server instance (e.g. https://btcpay.example.com).",
+        ),
+        "btcpay_api_key": FieldSpec(
+            required=True, sensitive=True,
+            description="Your BTCPay Server API key (Account > Manage Account > API Keys).",
+        ),
+        "btcpay_store_id": FieldSpec(
+            required=True, sensitive=True,
+            description="Your BTCPay Store ID (Stores > Settings > General).",
+        ),
+    },
+)
+
+host = SpinOperatorHost(
+    service_name="tollbooth-fermyon", slug="fermyon", service_version="0.1.0",
+    domain_tools=_DOMAIN,
+    operator_credential_template=_BTCPAY_TEMPLATE,
+    operator_credential_greeting=(
+        "Hi — I'm tollbooth-fermyon, a DPYC weather Operator running on Spin/WASI. "
+        "You (or your AI agent) requested a credential channel to deliver my BTCPay secrets."
+    ),
+    credential_validator=validate_btcpay_creds,
+)
 tool = host.tool
 
 
