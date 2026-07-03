@@ -11,8 +11,8 @@ import socket
 import subprocess
 
 from componentize_py_types import Ok, Err
-from wit_world.imports import types, streams, poll, outgoing_handler
-from wit_world.imports.types import (
+from wit_world.imports import wasi_http_types as types, streams, poll, outgoing_handler
+from wit_world.imports.wasi_http_types import (
     IncomingBody,
     OutgoingBody,
     OutgoingRequest,
