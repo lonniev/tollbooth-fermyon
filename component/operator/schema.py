@@ -90,14 +90,22 @@ def _title(name: str) -> str:
 def tool_schema(fn: Callable) -> dict[str, Any]:
     """Build an MCP inputSchema (JSON Schema object) for a tool function."""
     sig = inspect.signature(fn)
+    # Resolve PEP 563 string annotations (the tollbooth-dpyc wheel uses
+    # `from __future__ import annotations`, so p.annotation is e.g. "int" — a
+    # string that would otherwise fall through _json_type to "string").
+    try:
+        hints = typing.get_type_hints(fn, include_extras=True)
+    except Exception:
+        hints = {}
     arg_docs = _parse_arg_docs(inspect.getdoc(fn) or "")
     properties: dict[str, Any] = {}
     required: list[str] = []
     for name, p in sig.parameters.items():
         if name in ("self", "cls") or p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD):
             continue
-        prop: dict[str, Any] = {"type": _json_type(p.annotation), "title": _title(name)}
-        desc = _annotated_description(p.annotation) or arg_docs.get(name)
+        ann = hints.get(name, p.annotation)
+        prop: dict[str, Any] = {"type": _json_type(ann), "title": _title(name)}
+        desc = _annotated_description(ann) or arg_docs.get(name)
         if desc:
             prop["description"] = desc
         if p.default is inspect.Parameter.empty:

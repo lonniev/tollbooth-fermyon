@@ -24,6 +24,7 @@ import asyncio
 import inspect
 import json
 import traceback
+import typing
 from typing import Optional
 
 # 1) Route every httpx.AsyncClient over wasi:http BEFORE importing the wheel.
@@ -270,11 +271,9 @@ class Tools(exports.Tools):
             args = json.loads(request.arguments) if request.arguments else {}
         except Exception as e:
             return _text(f"invalid arguments: {e}", True)
-        # Only pass kwargs the tool declares — a client that sends an extra field
-        # (e.g. an npub to a no-arg tool) must not crash the call. Mirrors what
-        # FastMCP's schema binding does.
-        accepted = set(inspect.signature(fn).parameters)
-        args = {k: v for k, v in args.items() if k in accepted}
+        # Bind to the tool's declared params: drop unknown fields and coerce JSON
+        # scalars to their annotated types (what FastMCP's pydantic layer does).
+        args = _bind_args(fn, args)
         loop = PollLoop()
         asyncio.set_event_loop(loop)
         try:
@@ -284,6 +283,49 @@ class Tools(exports.Tools):
         out = result if isinstance(result, str) else json.dumps(result)
         is_err = isinstance(result, dict) and result.get("success") is False
         return _text(out, is_err)
+
+
+def _base_scalar(ann):
+    """Unwrap Annotated[T, ...] and Optional[T]/Union to the base scalar type
+    (same traversal as schema.py's _json_type)."""
+    origin = typing.get_origin(ann)
+    if origin is typing.Annotated:
+        return _base_scalar(typing.get_args(ann)[0])
+    if origin is typing.Union:
+        for a in typing.get_args(ann):
+            if a is not type(None):
+                return _base_scalar(a)
+    return ann
+
+
+def _bind_args(fn, args):
+    """Filter to the tool's declared params and coerce JSON scalars to their
+    annotated types. FastMCP does this via pydantic; the raw wasmcp transport
+    hands us the JSON as-is, so `days="30"` reaches an `int` param and blows up
+    (e.g. timedelta(days="30")). Mirror pydantic's lenient scalar coercion."""
+    # Resolve PEP 563 string annotations (the wheel uses future annotations, so
+    # p.annotation is e.g. "int" rather than the int type).
+    try:
+        hints = typing.get_type_hints(fn, include_extras=True)
+    except Exception:
+        hints = {}
+    out = {}
+    for name, p in inspect.signature(fn).parameters.items():
+        if name not in args:
+            continue
+        v = args[name]
+        t = _base_scalar(hints.get(name, p.annotation))
+        try:
+            if t is bool and isinstance(v, str):
+                v = v.strip().lower() in ("true", "1", "yes", "on")
+            elif t is int and isinstance(v, str) and v.strip():
+                v = int(v)
+            elif t is float and isinstance(v, (str, int)):
+                v = float(v)
+        except (ValueError, TypeError):
+            pass  # leave as-is; the tool's own validation will speak
+        out[name] = v
+    return out
 
 
 def _text(msg, is_error=None):
