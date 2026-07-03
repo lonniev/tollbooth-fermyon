@@ -60,6 +60,11 @@ spin up --env TOLLBOOTH_NOSTR_OPERATOR_NSEC=<nsec> --env BRIDGE_URL=http://local
 wasmcp session layer uses. Use `spin up` (the manifest), not `spin up -f server.wasm`
 (which ignores it).
 
+Add `--env PROOF_DEBUG=1` to have a rejected identity proof explain **which** check
+failed (u-tag binding, pubkey, signature, timestamp) in the error's `_diagnostic`
+field — invaluable for debugging a client's proof binding. **Off by default**:
+leaking which sub-check failed would help an attacker refine an invalid proof.
+
 ## Test
 
 ```
