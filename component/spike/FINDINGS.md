@@ -69,3 +69,27 @@ origin via Akamai Property Manager once the user has an Akamai workspace. Config
 Spin HTTP route so MCP is served at /mcp. Akamai default URL is https://<generated-uuid>.fwf.app
 (stable across redeploys, single global anycast endpoint, 30s request cap). Adoption records
 URL metadata only — the MCP need NOT be operational at adoption time (user confirmed).
+
+## Composition PROVEN at runtime on local spin (2026-07-03)
+
+The last integration mechanism — plugging the Rust crypto component into the
+Python MCP component and calling it at runtime — works on `spin up`:
+
+  # 1. Python tools component imports dpyc:crypto/ops (+ exports wasmcp tools, imports wasi:http)
+  componentize-py --wit-path wit --world <world> componentize app -o tools.wasm
+  # 2. Satisfy the dpyc:crypto import with the Rust component (wac-cli 0.10.1)
+  wac plug tools.wasm --plug crypto/target/wasm32-wasip1/release/dpyc_crypto.wasm -o plugged.wasm
+  # 3. Wrap with transport + middleware
+  wasmcp compose server plugged.wasm -o server.wasm --force
+  # 4. Run; wasi:http is satisfied by Spin at runtime
+  spin up -f server.wasm
+
+An MCP tools/call then reached the composed crypto: AES-256-GCM round-trip = true,
+and schnorr-verify of the REAL Authority signature (public id/sig/pubkey) = true.
+Sizes: tools 18.6 MB, plugged 18.8 MB, composed server 24 MB (< 50 MiB, pre-wheel).
+
+`wasmcp compose server` only chains HANDLER components in a pipeline — it does NOT
+satisfy a library import; use `wac plug` for that BEFORE `wasmcp compose server`.
+
+Local `spin up` is the Akamai Functions runner: the same composed server.wasm runs
+identically. Only the public *.fwf.app URL + edge-latency benchmark need Akamai.

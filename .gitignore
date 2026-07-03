@@ -3,6 +3,8 @@ venv/
 target/
 node_modules/
 .wrangler/
+component/operator/deps/
+wit_world/
 *.wasm
 .env
 .env.local

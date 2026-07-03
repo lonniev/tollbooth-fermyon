@@ -65,6 +65,12 @@ jobs:
       - name: Byte-compile
         run: python -m compileall -q component
 
+      - name: Install test deps
+        run: pip install "tollbooth-dpyc==0.59.0" "httpx==0.28.1" pytest
+
+      - name: Test schema generator
+        run: pytest component/operator/tests -v
+
   bridge-worker:
     name: Bridge Worker
     runs-on: ubuntu-latest

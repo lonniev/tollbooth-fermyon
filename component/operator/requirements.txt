@@ -1,0 +1,5 @@
+# Import-time deps bundled into the Wasm component. The native crypto libs
+# (cryptography, coincurve, pynostr, pydantic) are lazy-loaded by the wheel and
+# are NOT bundled — so install tollbooth-dpyc with --no-deps and add only httpx.
+tollbooth-dpyc==0.59.0
+httpx==0.28.1
