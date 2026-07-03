@@ -57,6 +57,11 @@ async def get_forecast(lat: float, lon: float, days: int = 7) -> dict:
                 "latitude": lat,
                 "longitude": lon,
                 "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+                # US units (Open-Meteo defaults to °C/mm); daily_units in the
+                # response echoes these so the values are labeled.
+                "temperature_unit": "fahrenheit",
+                "windspeed_unit": "mph",
+                "precipitation_unit": "inch",
                 "forecast_days": days,
                 "timezone": "auto",
             },
@@ -96,6 +101,11 @@ async def get_historical(
                 "start_date": start,
                 "end_date": end,
                 "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+                # US units (Open-Meteo defaults to °C/mm); daily_units in the
+                # response echoes these so the values are labeled.
+                "temperature_unit": "fahrenheit",
+                "windspeed_unit": "mph",
+                "precipitation_unit": "inch",
                 "timezone": "auto",
             },
         )
