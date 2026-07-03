@@ -4,5 +4,5 @@
 tollbooth-dpyc==0.59.1
 httpx==0.28.1
 # The Spin/WASI host. In-repo builds reference the sibling checkout; a released
-# build installs it from PyPI (tollbooth-wasmcp==0.1.0).
-tollbooth-wasmcp==0.1.0
+# build installs it from PyPI (tollbooth-wasmcp==0.1.1).
+tollbooth-wasmcp==0.1.1
