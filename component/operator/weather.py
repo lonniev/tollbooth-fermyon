@@ -26,6 +26,10 @@ async def get_current(lat: float, lon: float) -> dict:
                 "latitude": lat,
                 "longitude": lon,
                 "current_weather": "true",
+                # Open-Meteo defaults to °C + km/h; request US units and label them
+                # so the temperature can't be misread (e.g. 34°C ≈ 93°F).
+                "temperature_unit": "fahrenheit",
+                "windspeed_unit": "mph",
             },
         )
         resp.raise_for_status()
@@ -35,6 +39,7 @@ async def get_current(lat: float, lon: float) -> dict:
         "latitude": data.get("latitude"),
         "longitude": data.get("longitude"),
         "current_weather": data.get("current_weather"),
+        "current_weather_units": {"temperature": "°F", "windspeed": "mph", "winddirection": "°"},
         "timezone": data.get("timezone"),
     }
 
