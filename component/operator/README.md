@@ -1,73 +1,38 @@
-# operator — the fermyon DPYC weather Operator (Python WASI component)
+# operator — the fermyon DPYC weather Operator
 
-A self-contained, **execution-capable** MCP served by Spin (and, in production,
-Akamai Functions). It presents the same external interface as the reference
-[tollbooth-sample](https://github.com/lonniev/tollbooth-sample) — the full DPYC
-standard toolset plus three weather tools — but implements everything itself on
-WASI, with no FastMCP and no runtime pydantic, reusing the `tollbooth-dpyc` wheel
-**untouched**. Its tools are namespaced `fermyon_*` (a distinct peer of the
-`weather_*` sample, not a drop-in replacement).
+Business logic only. The Spin/WASI host is [`tollbooth-wasmcp`](https://github.com/lonniev/tollbooth-wasmcp)
+(`SpinOperatorHost`) — the peer of FastMCP on the Horizon side — so this operator is
+just the domain tool identities + three weather methods + the host bootstrap, the
+same shape as the FastMCP [tollbooth-sample](https://github.com/lonniev/tollbooth-sample).
+Its tools are `fermyon_*`, a distinct peer of the sample's `weather_*`.
 
-## How it works
+## Files
 
-The wheel expects native crypto, a filesystem, outbound sockets, and Nostr relay
-access — none of which the WASI Python interpreter has. The operator supplies each
-as a **seam**, wired at import time before the wheel is used:
+- `app.py` — the operator: `import tollbooth_wasmcp` (installs the pre-init seams),
+  construct `SpinOperatorHost(service_name, slug="fermyon", domain_tools=…)`, decorate
+  the three weather tools, `Tools = host.tools_export()`.
+- `weather.py` — the Open-Meteo backend client.
+- `spin.toml` — the operator's `allowed_outbound_hosts` (incl. open-meteo) + session KV.
 
-- **`app.py`** — the server. A `WasmMcp` shim records what the wheel's
-  `register_standard_tools()` registers; the weather tools are decorated methods.
-  `list_tools`/`call_tool` are the wasmcp `exports.Tools` surface. `call_tool`
-  drives the wheel's async tool bodies on componentize-py's `PollLoop`.
-- **`wasi_transport.py`** — an `httpx` transport over `wasi:http`. `httpx.AsyncClient`
-  is monkeypatched before the wheel imports, so every call the wheel makes
-  (registry, bridge, Neon, Open-Meteo) rides `wasi:http`.
-- **`bootstrap_wasm.py`** — replaces the wheel's `ensure_bootstrapped`: fetches the
-  operator's encrypted kind-30078 config event through the HTTPS→relay **bridge**
-  Worker and decrypts it with the composed crypto component to recover the Neon URL.
-  The operator holds only its **nsec**; the Neon URL is never configured.
-- **`pynostr/`** — pure-Python bech32 (npub/nsec) + `Event.verify` (identity-proof
-  signature check) delegating BIP-340 to the crypto component. **`cryptography/`** —
-  an `AESGCM` stub routing the vault cipher to the crypto component.
-- **`schema.py`** — self-contained JSON-Schema generation from each tool's signature
-  and Google-style docstring. This is why metadata matches FastMCP's quality with no
-  coupling — both read the same typed, documented functions.
-- **`weather.py`** — the Open-Meteo backend client.
-
-Config (`operator nsec`, `bridge URL`) arrives at run time via `spin up --env` /
-Spin variables and is refreshed into `os.environ` each call, because componentize-py
-freezes the environment in its pre-init snapshot. The tool list and its metadata are
-a **consequence of the code**, never a static blob.
+Everything else — the schema generator, arg coercion, the WASI transport, the
+nsec-only bootstrap, the `dpyc:crypto` component, and the HTTPS→relay bridge — lives
+in `tollbooth-wasmcp` and is shared across all DPYC Spin operators.
 
 ## Build & run
 
-Requires `wac` and `wasmcp` on PATH, plus the crypto component built once
-(`cd ../../crypto && cargo component build --release`).
+Requires `componentize-py`, `wac`, `wasmcp`, `spin` on PATH. In-repo builds reference
+the sibling `tollbooth-wasmcp` checkout (see the Makefile); an out-of-repo operator
+instead `pip install tollbooth-wasmcp` and points the Makefile at
+`python -m tollbooth_wasmcp.paths {toplevel,wit,crypto}`.
 
 ```
-make deps      # venv + componentize-py + tollbooth-dpyc (--no-deps) + httpx into deps/
-make compose   # componentize -> wac plug crypto component -> wasmcp compose -> server.wasm
+make deps      # venv + componentize-py + tollbooth-dpyc (--no-deps) + httpx
+make compose   # componentize (via adapter) -> wac plug crypto -> wasmcp compose -> server.wasm
 ```
 
-Run locally (the operator is nsec-only; supply the nsec and bridge URL at run time,
-never in the manifest):
+Run locally (nsec-only — supply the nsec + bridge URL at run time, never in the manifest):
 
 ```
-# start the bridge Worker in ../../bridge:  npx wrangler dev --port 8799 --local
+# start the bridge:  (cd ../../../tollbooth-wasmcp/bridge && npx wrangler dev --port 8799 --local)
 spin up --env TOLLBOOTH_NOSTR_OPERATOR_NSEC=<nsec> --env BRIDGE_URL=http://localhost:8799
-```
-
-`spin.toml` grants the operator's `allowed_outbound_hosts` and the KV store the
-wasmcp session layer uses. Use `spin up` (the manifest), not `spin up -f server.wasm`
-(which ignores it).
-
-Add `--env PROOF_DEBUG=1` to have a rejected identity proof explain **which** check
-failed (u-tag binding, pubkey, signature, timestamp) in the error's `_diagnostic`
-field — invaluable for debugging a client's proof binding. **Off by default**:
-leaking which sub-check failed would help an attacker refine an invalid proof.
-
-## Test
-
-```
-pip install tollbooth-dpyc==0.59.1 httpx pytest
-pytest tests
 ```

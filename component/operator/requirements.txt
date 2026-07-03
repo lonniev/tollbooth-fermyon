@@ -1,5 +1,8 @@
-# Import-time deps bundled into the Wasm component. The native crypto libs
-# (cryptography, coincurve, pynostr, pydantic) are lazy-loaded by the wheel and
-# are NOT bundled — so install tollbooth-dpyc with --no-deps and add only httpx.
+# Build-time deps for the operator component. tollbooth-dpyc is installed
+# --no-deps (its native crypto libs are lazy and must not enter the Wasm bundle;
+# the composed dpyc:crypto component supplies them). httpx (pure) is added.
 tollbooth-dpyc==0.59.1
 httpx==0.28.1
+# The Spin/WASI host. In-repo builds reference the sibling checkout; a released
+# build installs it from PyPI (tollbooth-wasmcp==0.1.0).
+tollbooth-wasmcp==0.1.0
