@@ -6,6 +6,12 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed — 2026-07-09
+
+- Bumped the `tollbooth-dpyc` wheel pin `0.62.0 → 0.62.1` (security-hardening
+  batch): invoice-owner check on credit settlement, GCM credential vault,
+  encrypted self-provisioning ledger, and no plaintext audit.
+
 ### Changed — slimmed onto the tollbooth-wasmcp host
 
 - The Spin/WASI host was extracted into the reusable **tollbooth-wasmcp** package
