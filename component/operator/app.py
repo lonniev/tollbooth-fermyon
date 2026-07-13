@@ -13,7 +13,7 @@ dpyc:crypto + nsec-only bootstrap, schema+coercion, snapshot fixes) before the w
 import tollbooth_wasmcp  # noqa: F401 — installs the pre-init seams (must precede the wheel)
 from tollbooth_wasmcp import SpinOperatorHost
 
-from tollbooth.tool_identity import ToolIdentity, capability_uuid
+from tollbooth.tool_identity import ToolIdentity
 from tollbooth.credential_templates import CredentialTemplate, FieldSpec
 from tollbooth.credential_validators import validate_btcpay_creds
 
@@ -65,7 +65,7 @@ tool = host.tool
 
 
 @tool
-@host.runtime.paid_tool(capability_uuid("get_current_weather"))
+@host.runtime.paid_tool(GET_CURRENT)
 async def current(latitude: float, longitude: float, npub: str = "", dpop_token: str = "") -> dict:
     """Get current weather conditions for a location.
 
@@ -79,7 +79,7 @@ async def current(latitude: float, longitude: float, npub: str = "", dpop_token:
 
 
 @tool
-@host.runtime.paid_tool(capability_uuid("get_weather_forecast"))
+@host.runtime.paid_tool(GET_FORECAST)
 async def forecast(latitude: float, longitude: float, days: int = 7, npub: str = "", dpop_token: str = "") -> dict:
     """Get a multi-day weather forecast for a location.
 
@@ -94,7 +94,7 @@ async def forecast(latitude: float, longitude: float, days: int = 7, npub: str =
 
 
 @tool
-@host.runtime.paid_tool(capability_uuid("get_historical_weather"))
+@host.runtime.paid_tool(GET_HISTORICAL)
 async def historical(latitude: float, longitude: float, start_date: str, end_date: str, npub: str = "", dpop_token: str = "") -> dict:
     """Get historical weather data for a location and date range.
 
