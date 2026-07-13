@@ -7,33 +7,38 @@ Docs: https://open-meteo.com/en/docs
 
 from __future__ import annotations
 
+from typing import Any
+
 import httpx
 
 _BASE = "https://api.open-meteo.com/v1"
 _ARCHIVE_BASE = "https://archive-api.open-meteo.com/v1"
 _TIMEOUT = 15.0
 
+# Open-Meteo defaults to metric (°C, km/h, mm). Request US units on every call so
+# a 34°C reading can't be misread as 34°F. temperature/windspeed apply to every
+# endpoint; the daily queries additionally request inches of precipitation.
+_US_UNITS = {"temperature_unit": "fahrenheit", "windspeed_unit": "mph"}
+_DAILY_FIELDS = "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode"
 
-async def get_current(lat: float, lon: float) -> dict:
+
+async def _get(url: str, params: dict[str, Any]) -> dict[str, Any]:
+    """GET ``url`` with ``params``, returning parsed JSON and raising on non-2xx."""
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        resp = await client.get(url, params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def get_current(lat: float, lon: float) -> dict[str, Any]:
     """Fetch current weather conditions for a latitude/longitude.
 
     Returns temperature, wind speed, wind direction, and weather code.
     """
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.get(
-            f"{_BASE}/forecast",
-            params={
-                "latitude": lat,
-                "longitude": lon,
-                "current_weather": "true",
-                # Open-Meteo defaults to °C + km/h; request US units and label them
-                # so the temperature can't be misread (e.g. 34°C ≈ 93°F).
-                "temperature_unit": "fahrenheit",
-                "windspeed_unit": "mph",
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    data = await _get(
+        f"{_BASE}/forecast",
+        {"latitude": lat, "longitude": lon, "current_weather": "true", **_US_UNITS},
+    )
     return {
         "success": True,
         "latitude": data.get("latitude"),
@@ -44,30 +49,24 @@ async def get_current(lat: float, lon: float) -> dict:
     }
 
 
-async def get_forecast(lat: float, lon: float, days: int = 7) -> dict:
+async def get_forecast(lat: float, lon: float, days: int = 7) -> dict[str, Any]:
     """Fetch a multi-day weather forecast (1-16 days).
 
     Returns daily high/low temperatures, precipitation, and weather codes.
     """
     days = max(1, min(days, 16))
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.get(
-            f"{_BASE}/forecast",
-            params={
-                "latitude": lat,
-                "longitude": lon,
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
-                # US units (Open-Meteo defaults to °C/mm); daily_units in the
-                # response echoes these so the values are labeled.
-                "temperature_unit": "fahrenheit",
-                "windspeed_unit": "mph",
-                "precipitation_unit": "inch",
-                "forecast_days": days,
-                "timezone": "auto",
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    data = await _get(
+        f"{_BASE}/forecast",
+        {
+            "latitude": lat,
+            "longitude": lon,
+            "daily": _DAILY_FIELDS,
+            "precipitation_unit": "inch",
+            "forecast_days": days,
+            "timezone": "auto",
+            **_US_UNITS,
+        },
+    )
     return {
         "success": True,
         "latitude": data.get("latitude"),
@@ -79,9 +78,7 @@ async def get_forecast(lat: float, lon: float, days: int = 7) -> dict:
     }
 
 
-async def get_historical(
-    lat: float, lon: float, start: str, end: str
-) -> dict:
+async def get_historical(lat: float, lon: float, start: str, end: str) -> dict[str, Any]:
     """Fetch historical weather data for a date range.
 
     Args:
@@ -92,25 +89,19 @@ async def get_historical(
 
     Returns daily temperature, precipitation, and weather codes.
     """
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.get(
-            f"{_ARCHIVE_BASE}/archive",
-            params={
-                "latitude": lat,
-                "longitude": lon,
-                "start_date": start,
-                "end_date": end,
-                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
-                # US units (Open-Meteo defaults to °C/mm); daily_units in the
-                # response echoes these so the values are labeled.
-                "temperature_unit": "fahrenheit",
-                "windspeed_unit": "mph",
-                "precipitation_unit": "inch",
-                "timezone": "auto",
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    data = await _get(
+        f"{_ARCHIVE_BASE}/archive",
+        {
+            "latitude": lat,
+            "longitude": lon,
+            "start_date": start,
+            "end_date": end,
+            "daily": _DAILY_FIELDS,
+            "precipitation_unit": "inch",
+            "timezone": "auto",
+            **_US_UNITS,
+        },
+    )
     return {
         "success": True,
         "latitude": data.get("latitude"),
