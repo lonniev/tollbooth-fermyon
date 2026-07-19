@@ -1,7 +1,7 @@
 # Build-time deps for the operator component. tollbooth-dpyc is installed
 # --no-deps (its native crypto libs are lazy and must not enter the Wasm bundle;
 # the composed dpyc:crypto component supplies them). httpx (pure) is added.
-tollbooth-dpyc==0.63.3
+tollbooth-dpyc==0.65.0
 httpx==0.28.1
 # The Spin/WASI host. In-repo builds reference the sibling checkout; a released
 # build installs it from PyPI (tollbooth-wasmcp==0.1.5).
