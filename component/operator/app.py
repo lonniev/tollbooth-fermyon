@@ -11,13 +11,11 @@ dpyc:crypto + nsec-only bootstrap, schema+coercion, snapshot fixes) before the w
 """
 
 import tollbooth_wasmcp  # noqa: F401 — installs the pre-init seams (must precede the wheel)
-from tollbooth_wasmcp import SpinOperatorHost
-
-from tollbooth.tool_identity import ToolIdentity
+import weather
 from tollbooth.credential_templates import CredentialTemplate, FieldSpec
 from tollbooth.credential_validators import validate_btcpay_creds
-
-import weather
+from tollbooth.tool_identity import ToolIdentity
+from tollbooth_wasmcp import SpinOperatorHost
 
 GET_CURRENT = "b7327eb8-92b4-5252-84e0-ba3f437a16ed"
 GET_FORECAST = "b6d0e596-3aec-5a62-980b-7875aa04d079"
