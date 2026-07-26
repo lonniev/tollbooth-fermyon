@@ -12,9 +12,11 @@ the server runtime and how it is packaged. Same tools, same pricing, same
 Lightning-funded credit gate; a different, faster host.
 
 > **Status:** PoC. The full operator cold-start chain is proven end-to-end
-> (relay bootstrap → decrypt → Neon persistence → credit gate). Final assembly
-> into a single deployed component is in progress. See
-> [`component/spike/FINDINGS.md`](component/spike/FINDINGS.md).
+> (relay bootstrap → decrypt → Neon persistence → credit gate), and the Spin/WASI
+> host has since been extracted into the reusable
+> [`tollbooth-wasmcp`](https://github.com/lonniev/tollbooth-wasmcp) package — so
+> this repo is now the operator's business logic only. See
+> [`component/operator/README.md`](component/operator/README.md) for the build recipe.
 
 ---
 
@@ -50,34 +52,43 @@ global edge platform — and trades a container's multi-second cold start for a
 sub-second one, which matters for a pay-per-call MCP tool.
 
 The catch is that the interpreter has no native extension modules and no raw
-sockets. This repo shows how to bridge that gap **without forking the SDK**:
+sockets. The [`tollbooth-wasmcp`](https://github.com/lonniev/tollbooth-wasmcp)
+host this operator runs on bridges that gap **without forking the SDK** — so this
+repo stays business logic only:
 
-| Concern | How it works here |
+| Concern | How the host bridges it |
 |---|---|
 | Outbound HTTP (Neon, upstream APIs) | `httpx` routed over `wasi:http` via a custom transport — no `ssl` module needed |
-| secp256k1 + AES (Nostr proofs, NIP-04, vault) | a tiny native **Rust component** (`crypto/`) composed alongside the Python one |
-| Reading the Authority's bootstrap config off Nostr relays | an HTTPS→relay **bridge Worker** (`bridge/`), since relays are WebSocket-only |
+| secp256k1 + AES (Nostr proofs, NIP-04, vault) | a tiny native **Rust component** (`dpyc:crypto`) composed alongside the Python one |
+| Reading the Authority's bootstrap config off Nostr relays | an HTTPS→relay **bridge Worker**, since relays are WebSocket-only |
 | The operator's sole secret | its Nostr `nsec`, injected as one deploy-time variable — everything else is discovered at runtime |
 
 ## Repository layout
 
 ```
-component/   Python WASI component (componentize-py): the MCP tools + the credit gate
-crypto/      Rust component (cargo-component): secp256k1 + AES primitives, exported over WIT
-bridge/      Cloudflare Worker: HTTPS → Nostr relay fetch for cold-start bootstrap
-wit/         Shared WIT interfaces
+component/operator/   The operator — business logic only:
+  app.py                tool identities + SpinOperatorHost bootstrap
+  weather.py            the Open-Meteo backend client
+  spin.toml             outbound allowlist + session KV
 ```
+
+Everything else — the WASI HTTP transport, the `dpyc:crypto` Rust component, the
+HTTPS→relay bridge Worker, and the nsec-only bootstrap — now lives in
+[`tollbooth-wasmcp`](https://github.com/lonniev/tollbooth-wasmcp) and is shared
+across all DPYC Spin operators.
 
 ## Quick start
 
 ```bash
-# Rust crypto component — validated byte-for-byte against the tollbooth-dpyc wheel
-cd crypto && cargo test && cargo component build --release
+# Requires componentize-py, wac, wasmcp, and spin on PATH; the sibling
+# tollbooth-wasmcp checkout supplies the WASI host, dpyc:crypto, and the bridge.
+cd component/operator
+make deps      # venv + componentize-py + tollbooth-dpyc (--no-deps) + httpx
+make compose   # componentize -> wac plug crypto -> wasmcp compose -> server.wasm
 
-# Bridge Worker — HTTPS → Nostr relay fetch
-cd bridge && npm install && npm run dev
-
-# Python component — see component/spike/FINDINGS.md for the current build recipe
+# Run locally (nsec-only — supply the nsec + bridge URL at run time):
+#   (cd ../../../tollbooth-wasmcp/bridge && npx wrangler dev --port 8799 --local)
+spin up --env TOLLBOOTH_NOSTR_OPERATOR_NSEC=<nsec> --env BRIDGE_URL=http://localhost:8799
 ```
 
 ## The Tollbooth-DPYC ecosystem
@@ -85,6 +96,7 @@ cd bridge && npm install && npm run dev
 | Project | Role |
 |---|---|
 | [tollbooth-dpyc](https://github.com/lonniev/tollbooth-dpyc) | The shared SDK — all crypto, vault, auth, pricing, audit |
+| [tollbooth-wasmcp](https://github.com/lonniev/tollbooth-wasmcp) | The Spin/WASI host adapter (`SpinOperatorHost`) — the WASI seams this operator runs on |
 | [tollbooth-sample](https://github.com/lonniev/tollbooth-sample) | Reference Operator (this PoC mirrors it) |
 | [dpyc-community](https://github.com/lonniev/dpyc-community) | Governance registry — members, rules, taxation |
 | **tollbooth-fermyon** | This repo — a Wasm/edge runtime for a DPYC Operator |
