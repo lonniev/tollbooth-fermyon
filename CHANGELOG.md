@@ -36,6 +36,12 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
   instance was discarding in-memory debits, so paid tools had been running for free.
 
+## [0.1.1] - 2026-08-17
+
+### Changed — track tollbooth-dpyc 0.86.0 (GitHub-free bootstrap)
+
+The Spin/WASI operator picks up the GitHub-free bootstrap: relays and Authority resolution via the Oracle, no direct GitHub reads.
+
 ## [0.1.0] - 2026-07-03
 
 Initial proof-of-concept scaffolding.
