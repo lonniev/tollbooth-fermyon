@@ -36,6 +36,15 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
   instance was discarding in-memory debits, so paid tools had been running for free.
 
+## [0.1.3] — 2026-08-22
+
+### Changed — track tollbooth-dpyc 0.87.2
+
+An object argument a client serialised as a JSON string is now parsed
+rather than refused as `dict_type`. Fixes `update_post` rejecting a
+large patch and `update_design_text` rejecting a multi-key edits
+object.
+
 ## [0.1.2] — 2026-08-22
 
 ### Changed — track tollbooth-dpyc 0.87.1
