@@ -36,6 +36,15 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
   instance was discarding in-memory debits, so paid tools had been running for free.
 
+## [0.1.2] — 2026-08-22
+
+### Changed — track tollbooth-dpyc 0.87.1
+
+Picks up the relay-reliability work: `COURIER_RELAY_UNREACHABLE` so an
+unreachable pinned rendezvous is no longer reported as the patron never
+replying, relay-failure reporting to the Oracle, and a publish that counts
+only when the relay acknowledges that exact event.
+
 ## [0.1.1] - 2026-08-17
 
 ### Changed — track tollbooth-dpyc 0.86.0 (GitHub-free bootstrap)
