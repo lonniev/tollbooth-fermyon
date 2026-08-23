@@ -36,6 +36,16 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
   instance was discarding in-memory debits, so paid tools had been running for free.
 
+## [0.1.4] — 2026-08-22
+
+### Changed — track tollbooth-dpyc 0.87.3
+
+Recovering an orphaned job now uses the detached executor it was
+dispatched to. The recovery path never resolved the executor, so a
+job orphaned by a container recycle was retried in-process on the
+new front — bypassing the detached runner precisely when it was
+the point.
+
 ## [0.1.3] — 2026-08-22
 
 ### Changed — track tollbooth-dpyc 0.87.2
