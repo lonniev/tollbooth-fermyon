@@ -36,6 +36,14 @@ to adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Ledger debits persist per request (via tollbooth-wasmcp 0.1.5): a stateless Spin
   instance was discarding in-memory debits, so paid tools had been running for free.
 
+## [0.1.5] — 2026-08-22
+
+### Changed — track tollbooth-dpyc 0.88.0
+
+A relay down for a moment no longer becomes a permanent verdict.
+The bootstrap relay poll is retried on a bounded ladder, and a
+transient failure is no longer cached for the life of the process.
+
 ## [0.1.4] — 2026-08-22
 
 ### Changed — track tollbooth-dpyc 0.87.3
