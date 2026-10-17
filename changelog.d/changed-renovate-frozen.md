@@ -1,0 +1,1 @@
+- Renovate is switched off here: Fermyon is deliberately frozen on its pinned SDK and host adapter while held.

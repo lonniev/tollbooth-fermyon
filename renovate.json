@@ -1,4 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>lonniev/dpyc-community:renovate-config"]
+  "extends": ["local>lonniev/dpyc-community:renovate-config"],
+  "description": "Fermyon is deliberately frozen: the Spin/Akamai host pins its SDK and host adapter, and nothing here should move until it is unheld. The fleet preset's weekly lockfile refresh and dependency bumps are switched off for this repo.",
+  "lockFileMaintenance": { "enabled": false },
+  "enabled": false
 }
